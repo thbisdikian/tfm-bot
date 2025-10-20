@@ -1,3 +1,4 @@
+import logging
 import re
 from discord.ext import commands
 from data_manager import sql_manager
@@ -18,6 +19,7 @@ class GameListener(commands.Cog):
 
         if id := self.get_game_id(message):
             await message.channel.send(f"New game detected with ID: {id}")
+            logging.info(f"[GameListener.on_message]: New game detected with ID: {id}, adding to db")
             self.sql_manager.add_game(
                 Games(
                     id=id, 
