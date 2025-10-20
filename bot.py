@@ -4,41 +4,43 @@ import os
 import logging
 from dotenv import load_dotenv
 from discord.ext import commands
-from hello_cog import HelloCog
-from game_recognizer import GameRecognizer
+
+from game_listener import GameListener
+import bot_config
 
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.typing = False
 intents.presences = False
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-
-load_dotenv()
-
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
 
-# @bot.event
-# async def on_message(message):
-#     if message.author == bot.user:
-#         return
-
-#     if message.content.startswith('!hello'):
-#         await message.channel.send('Hello! How can I assist you today?')
-
 async def main():
+    load_dotenv()
+    config = bot_config.get_instance()
+
+    handlers = []
+    
+    if config.file_logging_enabled:
+        handlers.append(logging.FileHandler(filename=config.log_file_path, encoding='utf-8', mode='w'))
+    if config.stream_logging_enabled:
+        handlers.append(logging.StreamHandler())
+
     logging.basicConfig(
-        level=logging.DEBUG,
-        handlers=[logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')],
+        level=logging._nameToLevel.get(config.log_level, logging.INFO),
+        handlers=[*handlers],
         format='%(asctime)s:%(levelname)s:%(name)s: %(message)s'
     )
-    await bot.add_cog(HelloCog(bot))
-    await bot.add_cog(GameRecognizer(bot))
+    await bot.add_cog(GameListener(bot))
     token = os.getenv('TFM_BOT_DISCORD_TOKEN')
     await bot.start(token)
 
-asyncio.run(main())
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Bot stopped")
